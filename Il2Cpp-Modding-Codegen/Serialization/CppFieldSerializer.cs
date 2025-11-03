@@ -123,12 +123,12 @@ namespace Il2CppModdingCodegen.Serialization
             foreach (var spec in field.Specifiers)
                 fieldString += $"{spec} ";
             writer.WriteComment(fieldString + field.Type + " " + field.Name);
-            writer.WriteComment($"Size: 0x{ResolvedFieldSizes[field]:X}");
+            //writer.WriteComment($"Size: 0x{ResolvedFieldSizes[field]:X}");
             writer.WriteComment($"Offset: 0x{field.Offset:X}");
-            if (field.Constant != null)
-                writer.WriteComment($"Constant: {field.Constant}");
-            if (field.LayoutOffset >= 0)
-                writer.WriteComment($"Layout Offset: 0x{field.LayoutOffset:X}");
+            //if (field.Constant != null)
+            //    writer.WriteComment($"Constant: {field.Constant}");
+            //if (field.LayoutOffset >= 0)
+            //    writer.WriteComment($"Layout Offset: 0x{field.LayoutOffset:X}");
             if (!field.Specifiers.IsStatic() && !field.Specifiers.IsConst())
                 writer.WriteFieldDeclaration(ResolvedTypeNames[field]!, SafeFieldNames[field]);
             // If the field has a size, we can write a quick static_assert check to ensure the sizeof this field matches our computed size.

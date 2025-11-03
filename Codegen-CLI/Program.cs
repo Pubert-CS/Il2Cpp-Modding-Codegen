@@ -20,8 +20,7 @@ namespace Codegen_CLI
         {
             Console.WriteLine(DateTime.UtcNow.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fff'Z'"));
             Console.WriteLine("Drag and drop your dump.cs file (or a partial of it of the correct format) then press enter...");
-            string path = @"C:\Users\Sc2ad\Desktop\Code\Android Modding\BeatSaber\1.16.3\DummyDll-Inspector";
-            //string path = @"C:\Users\Sc2ad\Desktop\Code\Android Modding\GorillaTag\DummyDll";
+            string path = @"/home/pubert/Downloads/Il2CppDumper-GT-HAL21/DummyDll";
             if (!Directory.Exists(path))
                 path = Console.ReadLine().Replace("\"", string.Empty);
             bool parseDlls = false;
@@ -59,13 +58,6 @@ namespace Codegen_CLI
             // TODO: strip non-alphabetic characters out of input before parsing it
             if (Enum.TryParse(input, true, out OutputStyle style))
                 Console.WriteLine($"Parsed style '{style}'");
-
-            var libIl2cpp = @"C:\Program Files\Unity\Hub\Editor\2019.3.15f1\Editor\Data\il2cpp\libil2cpp";
-            if (!Directory.Exists(libIl2cpp))
-            {
-                Console.WriteLine("Drag and drop your libil2cpp folder into this window then press enter:");
-                libIl2cpp = Console.ReadLine();
-            }
 
             Console.WriteLine("Creating serializer...");
             var config = new SerializationConfig
@@ -107,8 +99,7 @@ namespace Codegen_CLI
                 PrintSerializationProgress = true,
                 PrintSerializationProgressFrequency = 1000,
                 Id = "codegen",
-                Version = "0.2.5",
-                Libil2cpp = libIl2cpp,
+                Version = "0.2.5"
             };
 
             if (config.OneSourceFile)
@@ -136,7 +127,7 @@ namespace Codegen_CLI
 
             Console.WriteLine("Performing JSON dump...");
             watch.Restart();
-            var jsonOutput = Path.Combine(Environment.CurrentDirectory, "json_output");
+            /*var jsonOutput = Path.Combine(Environment.CurrentDirectory, "json_output");
             Directory.CreateDirectory(jsonOutput);
             var outp = Path.Combine(jsonOutput, "parsed.json");
             if (File.Exists(outp))
@@ -157,7 +148,7 @@ namespace Codegen_CLI
             using (var fs = File.OpenWrite(outp))
             {
                 JsonSerializer.SerializeAsync(fs, parsed as DllData, conf).Wait();
-            }
+            }*/
             watch.Stop();
             Console.WriteLine($"Json Dump took: {watch.Elapsed}!");
             Console.WriteLine("============================================");
@@ -175,7 +166,7 @@ namespace Codegen_CLI
                 Console.WriteLine(e);
             }
             Console.WriteLine(string.Join(", ", SerializationConfig.SpecialMethodNames));
-            Console.ReadLine();
+            //Console.ReadLine();
         }
     }
 }

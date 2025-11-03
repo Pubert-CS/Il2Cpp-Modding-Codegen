@@ -70,10 +70,7 @@ namespace Il2CppModdingCodegen.Data
         {
             var s = param.container.TypeName(header);
             if (param.modifier != ParameterModifier.None && param.modifier != ParameterModifier.Params)
-                if (!wantWrappers)
-                    s += "&";
-                else
-                    s = "ByRef<" + s + ">";
+                s += "&";
             return s;
         }
 
@@ -104,7 +101,7 @@ namespace Il2CppModdingCodegen.Data
                         if (container.ExpandParams)
                         {
                             if (!container.HasTemplate)
-                                nameStr = $"::ArrayW<{container.ElementType}>({nameStr})";
+                                nameStr = $"BNM::Structures::Mono::Array<{container.ElementType}>({nameStr})";
                             else
                             {
                                 if (!container.TypeName(true).Contains("..."))

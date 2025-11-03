@@ -191,18 +191,15 @@ namespace Il2CppModdingCodegen.Serialization
 
         private static void WriteForwardDeclaration(CppStreamWriter writer, ITypeData typeData)
         {
-            var resolved = typeData.This;
+            var resolved = typeData.This    ;
             var comment = "Forward declaring type: " + resolved.Name;
             if (resolved.IsGenericTemplate)
             {
                 // If the type being resolved is generic, we must template it.
                 var genericStr = CppTypeContext.GetTemplateLine(typeData);
-                writer.WriteComment(comment + "<" + string.Join(", ", resolved.Generics.Select(tr => tr.CppName())) + ">");
                 if (!string.IsNullOrEmpty(genericStr))
                     writer.WriteLine(genericStr);
             }
-            else
-                writer.WriteComment(comment);
             // Write forward declarations
             writer.WriteDeclaration(typeData.Type.TypeName() + " " + resolved.CppName());
         }
@@ -216,8 +213,8 @@ namespace Il2CppModdingCodegen.Serialization
             {
                 // Primitives include
 
-                if (includesWritten.Add("beatsaber-hook/shared/utils/typedefs.h"))
-                    writer.WriteInclude("beatsaber-hook/shared/utils/typedefs.h");
+                if (includesWritten.Add("BNMIncludes.hpp"))
+                    writer.WriteInclude("BNMIncludes.hpp");
             }
             else if (context.NeedStdint && asHeader && includesWritten.Add("stdint.h"))
                 writer.WriteLine("#include <stdint.h>");
@@ -239,8 +236,8 @@ namespace Il2CppModdingCodegen.Serialization
                     if (includesWritten.Add("System/Object.hpp"))
                         writer.WriteInclude("System/Object.hpp");
                 // Always include byref because it is so small
-                if (includesWritten.Add("beatsaber-hook/shared/utils/byref.hpp"))
-                    writer.WriteInclude("beatsaber-hook/shared/utils/byref.hpp");
+                //if (includesWritten.Add("beatsaber-hook/shared/utils/byref.hpp"))
+                    //writer.WriteInclude("beatsaber-hook/shared/utils/byref.hpp");
             }
 
             // I don't know why, but this seems to be what we need for type completion in templates
@@ -263,32 +260,32 @@ namespace Il2CppModdingCodegen.Serialization
             {
                 if (!asHeader)
                 {
-                    if (includesWritten.Add("beatsaber-hook/shared/utils/il2cpp-utils.hpp"))
-                        writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-utils.hpp");
+                    /*if (includesWritten.Add("beatsaber-hook/shared/utils/il2cpp-utils.hpp"))
+                        writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-utils.hpp");*/
                 }
                 else
                 {
-                    if (includesWritten.Add("beatsaber-hook/shared/utils/il2cpp-utils-methods.hpp"))
+                    /*if (includesWritten.Add("beatsaber-hook/shared/utils/il2cpp-utils-methods.hpp"))
                         writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-utils-methods.hpp");
                     if (includesWritten.Add("beatsaber-hook/shared/utils/il2cpp-utils-properties.hpp"))
                         writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-utils-properties.hpp");
                     if (includesWritten.Add("beatsaber-hook/shared/utils/il2cpp-utils-fields.hpp"))
-                        writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-utils-fields.hpp");
+                        writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-utils-fields.hpp");*/
                 }
-                if (includesWritten.Add("beatsaber-hook/shared/utils/utils.h"))
-                    writer.WriteInclude("beatsaber-hook/shared/utils/utils.h");
+                //if (includesWritten.Add("beatsaber-hook/shared/utils/utils.h"))
+                    //writer.WriteInclude("beatsaber-hook/shared/utils/utils.h");
             }
             if (asHeader)
             {
                 if (context.NeedArrayInclude)
                 {
                     // Array include for Array<T>* and ArrayW<T>
-                    writer.WriteInclude("beatsaber-hook/shared/utils/typedefs-array.hpp");
+                    //writer.WriteInclude("beatsaber-hook/shared/utils/typedefs-array.hpp");
                 }
                 if (context.NeedStringInclude)
                 {
                     // String include for StringW and Il2CppString FD
-                    writer.WriteInclude("beatsaber-hook/shared/utils/typedefs-string.hpp");
+                    //writer.WriteInclude("beatsaber-hook/shared/utils/typedefs-string.hpp");
                 }
             }
             writer.WriteComment("Completed includes");
@@ -298,10 +295,10 @@ namespace Il2CppModdingCodegen.Serialization
         {
             if (declares.Count <= 0) return;
             // Write forward declarations
-            writer.WriteComment("Begin forward declares");
+            //writer.WriteComment("Begin forward declares");
             foreach (var byNamespace in declares)
             {
-                writer.WriteComment("Forward declaring namespace: " + byNamespace.Key);
+                //writer.WriteComment("Forward declaring namespace: " + byNamespace.Key);
                 writer.WriteDefinition("namespace " + byNamespace.Key);
                 foreach (var t in byNamespace.Value)
                 {
@@ -312,7 +309,7 @@ namespace Il2CppModdingCodegen.Serialization
                     if (resolved != context.LocalType && context.Definitions.Contains(typeRef))
                     {
                         // Write a comment saying "we have already included this"
-                        writer.WriteComment("Skipping declaration: " + typeRef.Name + " because it is already included!");
+                        //writer.WriteComment("Skipping declaration: " + typeRef.Name + " because it is already included!");
                         continue;
                     }
                     if (typeRef.DeclaringType != null)
@@ -330,7 +327,7 @@ namespace Il2CppModdingCodegen.Serialization
                 // Close namespace after all types in the same namespace have been FD'd
                 writer.CloseDefinition();
             }
-            writer.WriteComment("Completed forward declares");
+            //writer.WriteComment("Completed forward declares");
         }
 
         private static void WritePrimitiveForwardDeclaration(CppStreamWriter writer, string primitive)
@@ -392,7 +389,7 @@ namespace Il2CppModdingCodegen.Serialization
         private static void IncludeIl2CppTypeCheckIfNotAlready(CppStreamWriter writer)
         {
             // Honestly, just always include type check...
-            writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-type-check.hpp");
+            writer.WriteInclude("BNMIncludes.hpp");
         }
 
         // Outputs a DEFINE_IL2CPP_ARG_TYPE call for all root or non-generic types defined by this file
@@ -456,7 +453,7 @@ namespace Il2CppModdingCodegen.Serialization
                     {
                         // Write namespace
                         // Always write an FD of ourselves, UNLESS WE ARE A NESTED TYPE!
-                        writer.WriteComment("Type namespace: " + context.LocalType.This.Namespace);
+                        //writer.WriteComment("Type namespace: " + context.LocalType.This.Namespace);
                         writer.WriteDefinition("namespace " + context.TypeNamespace);
                         // Always FD ourselves
                         WriteForwardDeclaration(writer, context.LocalType);
@@ -474,7 +471,7 @@ namespace Il2CppModdingCodegen.Serialization
                 if (!context.InPlace)
                 {
                     // Write namespace
-                    writer.WriteComment("Type namespace: " + context.LocalType.This.Namespace);
+                    //writer.WriteComment("Type namespace: " + context.LocalType.This.Namespace);
                     writer.WriteDefinition("namespace " + context.TypeNamespace);
                 }
 

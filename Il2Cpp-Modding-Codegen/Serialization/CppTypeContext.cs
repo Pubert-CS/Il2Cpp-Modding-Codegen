@@ -637,7 +637,7 @@ namespace Il2CppModdingCodegen.Serialization
                 // We should ensure we aren't attemping to force it to something it shouldn't be, so it should still be ForceAsType.None
                 // However, for arrays, we DO need to ensure we get the definition of the element type, assuming the element type is not a value type itself.
                 NeedArrayInclude = true;
-                s = $"::ArrayW<{GetCppName(def.ElementType, true, true, NeedAs.BestMatch)}>";
+                s = $"BNM::Structures::Mono::Array<{GetCppName(def.ElementType, true, true, NeedAs.BestMatch)}>*";
             }
             else if (def.IsPointer())
                 return GetCppName(def.ElementType, true, true, NeedAsForPrimitiveEtype(needAs)) + "*";

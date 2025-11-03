@@ -654,7 +654,7 @@ namespace Il2CppModdingCodegen.Serialization
                 {
                     var typeName = pair.Value;
                     var fieldName = fieldSer.SafeFieldNames[pair.Key];
-                    var defaultVal = typeName!.StartsWith("::ArrayW<") ? $"{typeName}(static_cast<void*>(nullptr))" : "{}";
+                    var defaultVal = typeName!.StartsWith("BNM::Structures::Mono::Array<") ? $"{typeName}(static_cast<void*>(nullptr))" : "{}";
                     return typeName + " " + fieldName + $"_ = {defaultVal}";
                 }));
                 signature += ") noexcept";
@@ -740,7 +740,7 @@ namespace Il2CppModdingCodegen.Serialization
                 if (hadGenerics)
                     str += ", ";
                 hadGenerics = true;
-                str += "::il2cpp_utils::CreationType creationType = ::il2cpp_utils::CreationType::Temporary";
+                //str += "::il2cpp_utils::CreationType creationType = ::il2cpp_utils::CreationType::Temporary";
             }
             if (_tempGenerics.TryGetValue(method, out var temps) && temps.Any())
             {
@@ -750,7 +750,7 @@ namespace Il2CppModdingCodegen.Serialization
                 if (withTemps)
                     str += string.Join(", ", temps.Select(s => "class " + s));
             }
-            if (hadGenerics)
+            if (hadGenerics && !string.IsNullOrEmpty(str))
             {
                 templateString = $"template<{str}>";
                 return true;
@@ -883,12 +883,8 @@ namespace Il2CppModdingCodegen.Serialization
                 }
 
                 // TODO: Potentially conflicting naming
-                var loggerId = "___internal__logger";
                 var mName = "___internal__method";
                 var genMName = "___generic__method";
-
-                writer.WriteDeclaration($"static auto {loggerId} = ::Logger::get()" +
-                    $".WithContext(\"{method.DeclaringType.GetQualifiedCppName()}::{method.Name}\")");
 
                 string s = "";
                 string innard = "";
@@ -921,12 +917,13 @@ namespace Il2CppModdingCodegen.Serialization
                 {
                     if (pair.Item2 != ParameterModifier.None && pair.Item2 != ParameterModifier.Params)
                     {
+                        return st; // no byref stuff
                         return "byref(" + st + ")";
                     }
                     return st;
                 });
                 string thisArg = (_declaringIsValueType ? "*" : "") + "this";
-                var call = $"::il2cpp_utils::{utilFunc}{innard}(";
+                var call = $"";
 
                 string extractionString = null!;
                 if (!isNewCtor)
@@ -935,7 +932,8 @@ namespace Il2CppModdingCodegen.Serialization
                     {
                         // The string used for extracting types matters here. Parameters that are non-out parameters are simply: ExtractType(name)
                         // Parameters that are types are: ExtractIndependentType<TParam>()
-                        if (pm.Item2 == ParameterModifier.Out)
+                        return $"\"{s}\"";
+                        /*if (pm.Item2 == ParameterModifier.Out)
                         {
                             // We need to keep the & here, which will then ensure we find the method with the matching reftype.
                             return $"::il2cpp_utils::ExtractIndependentType<{pm.PrintParameter(asHeader)}>()";
@@ -943,16 +941,16 @@ namespace Il2CppModdingCodegen.Serialization
                         else
                         {
                             return $"::il2cpp_utils::ExtractType({s})";
-                        }
+                        }*/
                     });
                     var invokeMethodName = "___internal__method";
                     // Static methods are cacheable, virtual methods should never be cached, methods on generic types that used generic args should not be cached.
                     bool cache = !method.IsVirtual || method.Specifiers.IsStatic() && !method.Parameters.Any(p => method.DeclaringType.Generics.Any(p2 => p2.Equals(p)));
-                    if (!method.IsVirtual)
-                    {
-                        writer.WriteDeclaration($"{(cache ? "static " : "")}auto* {invokeMethodName} = " +
-                            _config.MacroWrap(loggerId, $"::il2cpp_utils::FindMethod({(method.Specifiers.IsStatic() ? classArgs : thisArg)}, \"{method.Il2CppName}\", std::vector<Il2CppClass*>{genTypesList}, ::std::vector<const Il2CppType*>{{{extractionString}}})", true));
-                    }
+                    //if (!method.IsVirtual)
+                    //{
+                    writer.WriteDeclaration($"{(cache ? "static " : "")}::BNM::Method<{returnType}> {invokeMethodName} = " +
+                        _config.MacroWrap("", $"::BNM::Class({classArgs}).GetMethod(\"{method.Il2CppName}\", {{{extractionString}}})", true));
+                    /*}
                     else
                     {
                         // Method IS virtual, lets do a virtual lookup for this particular method. We need to know WHERE this particular method comes from
@@ -960,28 +958,43 @@ namespace Il2CppModdingCodegen.Serialization
 
                         // The problem here is that if the method we are trying to write out is a virtual INTERFACE method, we will have to include the interfaces for classof
                         var targetClass = $"classof({implementingTypes[method]})";
-                        writer.WriteDeclaration($"{(cache ? "static " : "")}auto* {invokeMethodName} = {_config.MacroWrap(loggerId, $"::il2cpp_utils::ResolveVtableSlot({thisArg}, {targetClass}, {method.Slot})", false)}");
-                    }
+                        writer.WriteDeclaration($"{(cache ? "static " : "")}::BNM::Method<{returnType}> {invokeMethodName} = {_config.MacroWrap("", $"::il2cpp_utils::ResolveVtableSlot({thisArg}, {targetClass}, {method.Slot})", false)}");
+                    }*/
                     if (method.Generic)
                     {
-                        writer.WriteDeclaration($"{(cache ? "static " : "")}auto* ___generic__method = " +
-                            _config.MacroWrap(loggerId, $"::il2cpp_utils::MakeGenericMethod({mName}, std::vector<Il2CppClass*>{genTypesList})", true));
+                        writer.WriteDeclaration($"{(cache ? "static " : "")}::BNM::Method<{returnType}> ___generic__method = " +
+                            _config.MacroWrap("", $"{invokeMethodName}.GetGeneric({genTypesList})", true));
                         mName = genMName;
                         invokeMethodName = "___generic__method";
                     }
-                    string firstParam = method.Specifiers.IsStatic() ? "static_cast<Il2CppObject*>(nullptr)" : "this";
-                    call += $"{firstParam}, {invokeMethodName}" + (paramString.Length > 0 ? (", " + paramString) : "") + ")";
-                    
+                    if (!method.Specifiers.IsStatic())
+                    {
+                        writer.WriteDeclaration($"___generic__method.SetInstance(reinterpret_cast<Il2CppObject*>(this))");
+                    }
+                    //string firstParam = method.Specifiers.IsStatic() ? "static_cast<Il2CppObject*>(nullptr)" : "this";
+                    call = $"{invokeMethodName}.Call({paramString})";
+                    //call += $"{invokeMethodName}" + (paramString.Length > 0 ? (", " + paramString) : "") + ")";
                 }
                 else
                 {
                     // If it is not {}
-                    call += $"{(genTypesList.Length > 2 ? ", " + genTypesList : "")}{paramString})";
+                    call = $"({returnType})::BNM::Class({classArgs}).CreateNewObjectParameters({paramString})";
+                    //call += $"{(genTypesList.Length > 2 ? ", " + genTypesList : "")}{paramString})";
                 }
+
+                /*
+                    template<class T>
+                    static void ResizeList(::System::Collections::Generic::List_1<T>* list, int size) {
+                        static auto ___internal__logger = ::Logger::get().WithContext("::UnityEngine::NoAllocHelpers::ResizeList");
+                        static auto* ___internal__method = THROW_UNLESS((::il2cpp_utils::FindMethod("UnityEngine", "NoAllocHelpers", "ResizeList", std::vector<Il2CppClass*>{::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<T>::get()}, ::std::vector<const Il2CppType*>{::il2cpp_utils::ExtractType(list), ::il2cpp_utils::ExtractType(size)})));
+                        static auto* ___generic__method = THROW_UNLESS(::il2cpp_utils::MakeGenericMethod(___internal__method, std::vector<Il2CppClass*>{::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<T>::get()}));
+                        ::il2cpp_utils::RunMethodRethrow<void, false>(static_cast<Il2CppObject*>(nullptr), ___generic__method, list, size);
+                    }
+                */
 
                 // Write call
                 if (isNewCtor || !utilFunc.EndsWith("throw", StringComparison.Ordinal))
-                    writer.WriteDeclaration(s + _config.MacroWrap(loggerId, call, needsReturn));
+                    writer.WriteDeclaration(s + _config.MacroWrap("", call, needsReturn));
                 else
                     writer.WriteDeclaration(s + call);
                 // Close method
@@ -1206,6 +1219,7 @@ namespace Il2CppModdingCodegen.Serialization
             }
         }
 
+        [Obsolete("Unused, BNM doesn't need this.")]
         private void WriteMetadataGetter(CppStreamWriter writer, string type, IMethod method, string castMethodPtr)
         {
             // In order to properly handle overloads, we need to emit a static_cast with the correct signature type
@@ -1255,8 +1269,8 @@ namespace Il2CppModdingCodegen.Serialization
                 // If the method in question is only generic because we made it generic, don't call MakeGenericMethod
                 var typeName = _thisTypeName == "Il2CppObject*" ? "System::Object" : _declaringFullyQualified;
 
-                writer.WriteComment($"Writing MetadataGetter for method: {typeName}::{cppName}");
-                writer.WriteComment($"Il2CppName: {method.Il2CppName}");
+                //writer.WriteComment($"Writing MetadataGetter for method: {typeName}::{cppName}");
+                //writer.WriteComment($"Il2CppName: {method.Il2CppName}");
                 if (method.Generic)
                 {
                     writer.WriteComment("Cannot write MetadataGetter for generic methods!");
@@ -1291,7 +1305,7 @@ namespace Il2CppModdingCodegen.Serialization
                 }
                 else
                 {
-                    WriteMetadataGetter(writer, typeName + (!_declaringIsValueType ? "*" : ""), method, cast + $"({memberPtr})");
+                    //WriteMetadataGetter(writer, typeName + (!_declaringIsValueType ? "*" : ""), method, cast + $"({memberPtr})");
                 }
             }
         }

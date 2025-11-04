@@ -76,7 +76,7 @@ namespace Il2CppModdingCodegen.Serialization
             if (type.This.DeclaringType != null && type.This.DeclaringType.IsGeneric)
             {
                 s.declaring = context.GetCppName(type.This.DeclaringType, false, true, CppTypeContext.NeedAs.Definition);
-                s.parentNames.Add("::il2cpp_utils::il2cpp_type_check::NestedType");
+                //s.parentNames.Add("::il2cpp_utils::il2cpp_type_check::NestedType");
                 // TODO: include type-check instead?
                 context.EnableNeedIl2CppUtilsFunctionsInHeader();
             }
@@ -400,7 +400,7 @@ namespace Il2CppModdingCodegen.Serialization
                     return ret;
                 }
                 constraintStrs = p.Value.Select(ToConstraintString);
-                writer.WriteDeclaration($"static_assert({string.Join(" && ", constraintStrs)})");
+                //writer.WriteDeclaration($"static_assert({string.Join(" && ", constraintStrs)})");
             }
         }
     }

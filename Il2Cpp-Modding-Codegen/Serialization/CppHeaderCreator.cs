@@ -23,7 +23,7 @@ namespace Il2CppModdingCodegen.Serialization
         private void IncludeIl2CppTypeCheckIfNotAlready(CppStreamWriter writer)
         {
             if (hasIl2CppTypeCheckInclude) return;
-            writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-type-check.hpp");
+            //writer.WriteInclude("beatsaber-hook/shared/utils/il2cpp-type-check.hpp");
             hasIl2CppTypeCheckInclude = true;
         }
 
@@ -67,9 +67,15 @@ namespace Il2CppModdingCodegen.Serialization
 
             if (data.This.Namespace == "System" && data.This.Name == "ValueType")
             {
+                writer.WriteLine("template<typename T, typename = void>");
+                writer.WriteLine("struct is_value_type : std::false_type {};");
+
+                writer.WriteLine("template<typename T>");
+                writer.WriteLine("struct is_value_type<T, std::enable_if_t<std::is_convertible_v<T, System::ValueType>>> : std::true_type {};");
+
                 IncludeIl2CppTypeCheckIfNotAlready(writer);
-                writer.WriteLine("template<class T>");
-                writer.WriteLine("struct is_value_type<T, typename std::enable_if_t<std::is_convertible_v<T, System::ValueType>>> : std::true_type{};");
+                //writer.WriteLine("template<class T>");
+                //writer.WriteLine("struct is_value_type<T, typename std::enable_if_t<std::is_convertible_v<T, System::ValueType>>> : std::true_type{};");
             }
             var nestedContexts = new Stack<CppTypeContext>(context.NestedContexts.Where(n => n.InPlace));
             while (nestedContexts.TryPop(out var nested))
@@ -79,7 +85,7 @@ namespace Il2CppModdingCodegen.Serialization
                     nestedContexts.Push(innerNested);
             }
 
-            writer.WriteLine("#include \"beatsaber-hook/shared/utils/il2cpp-utils-methods.hpp\"");
+            //writer.WriteLine("#include \"beatsaber-hook/shared/utils/il2cpp-utils-methods.hpp\"");
             _serializer.WritePostSerializeMethods(writer, context, true);
             writer.Flush();
 

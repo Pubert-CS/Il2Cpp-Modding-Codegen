@@ -193,7 +193,7 @@ namespace Il2CppModdingCodegen.Serialization
                 mkSerializer.AggregateStaticLibraries(libs);
             }
             else
-            {
+            {   
                 // Don't need to use modloader since this library is not a mod, it has no ModInfo that it uses!
                 // TODO: Configurable bs-hook version
                 mkSerializer.WritePrebuiltSharedLibrary("beatsaber-hook", "./extern/libbeatsaber-hook_0_7_4.so", "./extern/beatsaber-hook/shared/");

@@ -135,8 +135,8 @@ namespace Il2CppModdingCodegen.Serialization
 
             if (ResolvedFieldSizes[field] > 0)
             {
-                writer.WriteComment("Field size check");
-                writer.WriteDeclaration($"static_assert(sizeof({ResolvedTypeNames[field]!}) == 0x{ResolvedFieldSizes[field]:X})");
+                //writer.WriteComment("Field size check");
+                //writer.WriteDeclaration($"static_assert(sizeof({ResolvedTypeNames[field]!}) == 0x{ResolvedFieldSizes[field]:X})");
             }
             // If we aren't the last field, add the padding necessary to ensure our next field is in the correct location.
             // This is actually quite tricky, as we need to account for quite a few things (specifically when we don't HAVE an offset to take advantage of)

@@ -35,5 +35,40 @@
 #include "BNM/UnityStructures/Matrix3x3.hpp"
 #include "BNM/UnityStructures/Matrix4x4.hpp"
 
-template<typename T>
-struct il2cpp_no_arg_class { };
+using namespace ::BNM::IL2CPP;
+
+
+namespace il2cpp_utils {
+    template<typename T, typename = void>
+    struct Il2CppClassFromType {
+        static ::BNM::Class get() {
+            BNM_LOG_ERR("Failed to get class for type");
+            return ::BNM::Class("", "");
+        }
+    };
+
+    template<typename T>
+    inline ::BNM::Class GetIl2CppClassFromType() {
+        return Il2CppClassFromType<T>::get();
+    }
+}
+
+#define DEFINE_IL2CPP_ARG_TYPE(type, ns, cn)        \
+namespace il2cpp_utils {                            \
+    template <>                                     \
+    struct Il2CppClassFromType<type> {             \
+        static ::BNM::Class get() {                \
+            return ::BNM::Class(ns, cn);           \
+        }                                          \
+    };                                             \
+}
+
+#define DEFINE_IL2CPP_ARG_TYPE_GENERIC(templateType, ns, cn)  \
+namespace il2cpp_utils {                                       \
+    template<typename... Ts>                                    \
+    struct Il2CppClassFromType<templateType<Ts...>> {          \
+        static ::BNM::Class get() {                            \
+            return ::BNM::Class(ns, cn);                      \
+        }                                                      \
+    };                                                         \
+}

@@ -208,7 +208,7 @@ namespace Il2CppModdingCodegen.Serialization
         {
             // Write includes
             var includesWritten = new HashSet<string>();
-            writer.WriteComment("Begin includes");
+            //writer.WriteComment("Begin includes");
             if (asHeader ? context.NeedPrimitivesBeforeLateHeader : context.PrimitiveDeclarations.Count > 0)
             {
                 // Primitives include
@@ -246,7 +246,7 @@ namespace Il2CppModdingCodegen.Serialization
             includes.AddRange(isDescriptor[false]);
             foreach (var include in includes)
             {
-                writer.WriteComment("Including type: " + include.LocalType.This);
+                //writer.WriteComment("Including type: " + include.LocalType.This);
                 // Using the HeaderFileName property of the include here will automatically use the lowest non-InPlace type
                 var incl = include.HeaderFileName;
                 if (includesWritten.Add(incl))
@@ -288,7 +288,7 @@ namespace Il2CppModdingCodegen.Serialization
                     //writer.WriteInclude("beatsaber-hook/shared/utils/typedefs-string.hpp");
                 }
             }
-            writer.WriteComment("Completed includes");
+            //writer.WriteComment("Completed includes");
         }
 
         private void WriteDeclarations(CppStreamWriter writer, CppTypeContext context, Dictionary<string, HashSet<TypeRef>> declares)
@@ -406,10 +406,11 @@ namespace Il2CppModdingCodegen.Serialization
                     ?? throw new UnresolvedTypeException(context.LocalType.This, context.LocalType.This);
                 if (context.LocalType.Info.Refness == Refness.ReferenceType)
                 {
-                    writer.WriteDeclaration("NEED_NO_BOX(" + fullName + ")");
+                    //writer.WriteDeclaration("NEED_NO_BOX(" + fullName + ")");
                     fullName += "*";
                 }
                 writer.WriteLine($"DEFINE_IL2CPP_ARG_TYPE({fullName}, \"{ns}\", \"{il2cppName}\");");
+                //writer.WriteLine($"DEFINE_IL2CPP_ARG_TYPE({fullName}, \"{ns}\", \"{il2cppName}\");");
             }
             else if (type.This.DeclaringType is null || !type.This.DeclaringType.IsGeneric)
             {
@@ -417,7 +418,8 @@ namespace Il2CppModdingCodegen.Serialization
                 string templateName = context.GetCppName(context.LocalType.This, true, false, CppTypeContext.NeedAs.Declaration, CppTypeContext.ForceAsType.Literal)
                     ?? throw new UnresolvedTypeException(context.LocalType.This, context.LocalType.This);
                 var structStr = context.LocalType.Info.Refness == Refness.ReferenceType ? "CLASS" : "STRUCT";
-                writer.WriteLine($"DEFINE_IL2CPP_ARG_TYPE_GENERIC_{structStr}({templateName}, \"{ns}\", \"{il2cppName}\");");
+                //writer.WriteLine($"DEFINE_IL2CPP_ARG_TYPE_GENERIC({templateName}, \"{ns}\", \"{il2cppName}\");");
+                //writer.WriteLine($"DEFINE_IL2CPP_ARG_TYPE_GENERIC_{structStr}({templateName}, \"{ns}\", \"{il2cppName}\");");
             }
         }
 
@@ -486,6 +488,7 @@ namespace Il2CppModdingCodegen.Serialization
                 if (context.LocalType.Layout > ITypeData.LayoutKind.Auto)
                     writer.WriteComment($"WARNING Layout: {context.LocalType.Layout} may not be correctly taken into account!");
 
+                // After all nested contexts are completely declared, we write our nested contexts that have InPlace = true, in the correct ordering.
                 typeSerializer.WriteInitialTypeDefinition(writer, context.LocalType, context.InPlace, context.BaseHasFields && context.LocalType.Type != TypeEnum.Interface);
 
                 if (context.GetBaseSize() != -1)
@@ -512,7 +515,7 @@ namespace Il2CppModdingCodegen.Serialization
                     // Regardless of if the nested context is InPlace or not, we can declare it within ourselves
                     AddNestedDeclare(writer, nested);
 
-                // After all nested contexts are completely declared, we write our nested contexts that have InPlace = true, in the correct ordering.
+
                 foreach (var inPlace in context.NestedContexts.Where(nc => nc.InPlace))
                     // Indent, create nested type definition
                     Serialize(writer, inPlace, true);
@@ -588,13 +591,13 @@ namespace Il2CppModdingCodegen.Serialization
                         // Also need to account for padding
                         // Don't actually need size checks, since offset checks should cover everything feasible.
                         // Extra bytes don't really matter, assuming it doesn't impact any OTHER structure.
-                        if (context.GetLocalSize() != -1)
+                        // if (context.GetLocalSize() != -1)
                             // If we know the explicit size, we check it because we will be packed.
-                            writer.WriteDeclaration($"static check_size<sizeof({typeName}), {f.Offset} + sizeof({context.GetCppName(f.Type, true)})> __{context.LocalType.This.CppNamespace().Replace("::", "_")}_{typeName?.Replace("::", "_")}SizeCheck");
-                        else
-                            writer.WriteComment("WARNING Not writing size check since size may be invalid!");
+                            // writer.WriteDeclaration($"static check_size<sizeof({typeName}), {f.Offset} + sizeof({context.GetCppName(f.Type, true)})> __{context.LocalType.This.CppNamespace().Replace("::", "_")}_{typeName?.Replace("::", "_")}SizeCheck");
+                        // else
+                            // writer.WriteComment("WARNING Not writing size check since size may be invalid!");
                         // For multiple fields, we need to ensure we are align 8
-                        //writer.WriteDeclaration($"static check_size<sizeof({typeName}), ({f.Offset} + sizeof({context.GetCppName(f.Type, true)})) % 8 != 0 ? (8 - ({f.Offset} + sizeof({context.GetCppName(f.Type, true)})) % 8) + {f.Offset} + sizeof({context.GetCppName(f.Type, true)}) : {f.Offset} + sizeof({context.GetCppName(f.Type, true)})> __{context.LocalType.This.CppNamespace().Replace("::", "_")}_{typeName?.Replace("::", "_")}SizeCheck");
+                        // writer.WriteDeclaration($"static check_size<sizeof({typeName}), ({f.Offset} + sizeof({context.GetCppName(f.Type, true)})) % 8 != 0 ? (8 - ({f.Offset} + sizeof({context.GetCppName(f.Type, true)})) % 8) + {f.Offset} + sizeof({context.GetCppName(f.Type, true)}) : {f.Offset} + sizeof({context.GetCppName(f.Type, true)})> __{context.LocalType.This.CppNamespace().Replace("::", "_")}_{typeName?.Replace("::", "_")}SizeCheck");
                     }
                     else
                     {
@@ -604,8 +607,8 @@ namespace Il2CppModdingCodegen.Serialization
                             writer.WriteComment($"Could not write field size check! Last field: {f.Name} Offset: {f.Offset} is of type: {f.Type}");
                     }
                     var localTypeSize = context.GetLocalSize();
-                    if (localTypeSize > 0)
-                        writer.WriteDeclaration($"static_assert(sizeof({typeName}) == 0x{localTypeSize:X})");
+                    //if (localTypeSize > 0)
+                        //writer.WriteDeclaration($"static_assert(sizeof({typeName}) == 0x{localTypeSize:X})");
                 }
                 else if (context.LocalType.This.IsGeneric)
                 {

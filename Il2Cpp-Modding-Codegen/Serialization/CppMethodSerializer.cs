@@ -654,7 +654,7 @@ namespace Il2CppModdingCodegen.Serialization
                 {
                     var typeName = pair.Value;
                     var fieldName = fieldSer.SafeFieldNames[pair.Key];
-                    var defaultVal = typeName!.StartsWith("BNM::Structures::Mono::Array<") ? $"{typeName}(static_cast<void*>(nullptr))" : "{}";
+                    var defaultVal = typeName!.StartsWith("BNM::Structures::Mono::Array<") ? $"nullptr" : "{}";
                     return typeName + " " + fieldName + $"_ = {defaultVal}";
                 }));
                 signature += ") noexcept";
@@ -688,6 +688,7 @@ namespace Il2CppModdingCodegen.Serialization
             FieldConversionOperator op, bool asHeader)
         {
             if (op.Field is null) return;
+            if (op.Kind == ConversionOperatorKind.Delete) return;
             // If the type we are writing is a value type with exactly one instance field, we would like to make an implicit conversion operator that
             // converts the type to the field. If a subclass then adds any instance fields, that operator must be deleted in the subclass.
             if (asHeader && op.Kind != ConversionOperatorKind.Inherited)
@@ -760,7 +761,7 @@ namespace Il2CppModdingCodegen.Serialization
 
         private static string Il2CppNoArgClass(string t)
         {
-            return $"::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<{t}>::get()";
+            return $"::il2cpp_utils::GetIl2CppClassFromType<{t}>()";
         }
 
         private string GenericTypesList(IMethod method)
@@ -865,8 +866,8 @@ namespace Il2CppModdingCodegen.Serialization
 
                 var (@namespace, @class) = method.DeclaringType.GetIl2CppName();
                 var classArgs = $"\"{@namespace}\", \"{@class}\"";
-                if (method.DeclaringType.IsGeneric)
-                    classArgs = Il2CppNoArgClass(_thisTypeName);
+                //if (method.DeclaringType.IsGeneric)
+                //    classArgs = Il2CppNoArgClass(_thisTypeName);
 
                 var genTypesList = GenericTypesList(method);
 
@@ -944,12 +945,15 @@ namespace Il2CppModdingCodegen.Serialization
                         }*/
                     });
                     var invokeMethodName = "___internal__method";
+                    string internalClass = "___internal__class";
+                    writer.WriteDeclaration($"static ::BNM::Class {internalClass} = ::BNM::Class({classArgs}){(method.DeclaringType.IsGeneric ? $".GetGeneric({{{string.Join(", ", method.DeclaringType.Generics.Select(x => $"::il2cpp_utils::GetIl2CppClassFromType<{x.Name}>()"))}}})" :"")}");
+                    
                     // Static methods are cacheable, virtual methods should never be cached, methods on generic types that used generic args should not be cached.
                     bool cache = !method.IsVirtual || method.Specifiers.IsStatic() && !method.Parameters.Any(p => method.DeclaringType.Generics.Any(p2 => p2.Equals(p)));
                     //if (!method.IsVirtual)
                     //{
                     writer.WriteDeclaration($"{(cache ? "static " : "")}::BNM::Method<{returnType}> {invokeMethodName} = " +
-                        _config.MacroWrap("", $"::BNM::Class({classArgs}).GetMethod(\"{method.Il2CppName}\", {{{extractionString}}})", true));
+                        _config.MacroWrap("", $"{internalClass}.GetMethod(\"{method.Il2CppName}\", {( string.IsNullOrEmpty(extractionString) ? "0" : $"{{{extractionString}}}" )})", true));
                     /*}
                     else
                     {
@@ -967,9 +971,13 @@ namespace Il2CppModdingCodegen.Serialization
                         mName = genMName;
                         invokeMethodName = "___generic__method";
                     }
+
+                   //(___internal__method.GetGeneric({::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<TAsyncCompletedEventArgs>::get(), ::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<TCompletionDelegate>::get(), ::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<T>::get()}));
+                   //___generic__method.SetInstance(reinterpret_cast<Il2CppObject*>(this));
+                    //___generic__method.Call(tcs, e, getResult, handler, unregisterHandler);
                     if (!method.Specifiers.IsStatic())
                     {
-                        writer.WriteDeclaration($"___generic__method.SetInstance(reinterpret_cast<Il2CppObject*>(this))");
+                        writer.WriteDeclaration($"{invokeMethodName}.SetInstance(reinterpret_cast<Il2CppObject*>(this))");
                     }
                     //string firstParam = method.Specifiers.IsStatic() ? "static_cast<Il2CppObject*>(nullptr)" : "this";
                     call = $"{invokeMethodName}.Call({paramString})";
@@ -978,7 +986,7 @@ namespace Il2CppModdingCodegen.Serialization
                 else
                 {
                     // If it is not {}
-                    call = $"({returnType})::BNM::Class({classArgs}).CreateNewObjectParameters({paramString})";
+                    call = $"({returnType})::BNM::Class({classArgs}){(method.DeclaringType.IsGeneric ? $".GetGeneric({{{string.Join(", ", method.DeclaringType.Generics.Select(x => $"::il2cpp_utils::GetIl2CppClassFromType<{x.Name}>()"))}}})" : "")}.CreateNewObjectParameters({paramString})";
                     //call += $"{(genTypesList.Length > 2 ? ", " + genTypesList : "")}{paramString})";
                 }
 
@@ -1218,40 +1226,7 @@ namespace Il2CppModdingCodegen.Serialization
                 //ret.Add("if (declaring->generic_class) {auto* genInst = declaring->generic_class->context.class_inst")
             }
         }
-
-        [Obsolete("Unused, BNM doesn't need this.")]
-        private void WriteMetadataGetter(CppStreamWriter writer, string type, IMethod method, string castMethodPtr)
-        {
-            // In order to properly handle overloads, we need to emit a static_cast with the correct signature type
-            writer.WriteLine("template<>");
-            writer.WriteDefinition($"struct ::il2cpp_utils::il2cpp_type_check::MetadataGetter<{castMethodPtr}>");
-            writer.WriteDefinition("static const MethodInfo* get()");
-            // Instead of writing ExtractIndependentType, which requires the definitions of the parameter types to be present, lets use the literal calls
-            for (int i = 0; i < _parameterMaps[method].Count; ++i)
-            {
-                var (container, modifier) = _parameterMaps[method][i];
-                // klass->this_arg - for byref types
-                // klass->byval_arg - for standard types
-
-                var classGetters = ClassFromType(container.Type);
-                string typeAccessor = modifier != ParameterModifier.None && modifier != ParameterModifier.Params ? "this_arg" : "byval_arg";
-
-                // Then we simply use paramName for each of the items in the const Il2CppType* vector and it should find the match.
-                var paramName = method.Parameters[i].Name;
-                if (string.IsNullOrWhiteSpace(paramName))
-                    paramName = $"param_{i}";
-                while (_config.IllegalNames?.Contains(paramName) ?? false)
-                    paramName = "_" + paramName;
-                paramName = paramName.Replace('<', '$').Replace('>', '$');
-                writer.WriteDeclaration($"static auto* {paramName} = &{classGetters.Single()}->{typeAccessor}");
-            }
-            var extractionString = method.Parameters.FormatParameters(_config.IllegalNames, _parameterMaps[method], ParameterFormatFlags.Names);
-
-            writer.WriteDeclaration($"return ::il2cpp_utils::FindMethod(classof({type}), \"{method.Il2CppName}\", std::vector<Il2CppClass*>(), ::std::vector<const Il2CppType*>{{{extractionString}}})");
-            writer.CloseDefinition();
-            writer.CloseDefinition(";");
-        }
-
+    
         private static readonly List<string> ctorOptions = new()
         {
             "::il2cpp_utils::CreationType::Temporary",
@@ -1267,7 +1242,7 @@ namespace Il2CppModdingCodegen.Serialization
                 // If the type in question is generic, we need to combine generic arguments
                 // If the method in question is generic, we need to combine generic arguments
                 // If the method in question is only generic because we made it generic, don't call MakeGenericMethod
-                var typeName = _thisTypeName == "Il2CppObject*" ? "System::Object" : _declaringFullyQualified;
+                var typeName = _thisTypeName == "BNM::IL2CPP::Il2CppObject*" ? "System::Object" : _declaringFullyQualified;
 
                 //writer.WriteComment($"Writing MetadataGetter for method: {typeName}::{cppName}");
                 //writer.WriteComment($"Il2CppName: {method.Il2CppName}");

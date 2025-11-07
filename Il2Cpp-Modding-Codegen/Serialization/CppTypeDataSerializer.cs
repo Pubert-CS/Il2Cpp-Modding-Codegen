@@ -33,6 +33,7 @@ namespace Il2CppModdingCodegen.Serialization
         private CppMethodSerializer? _methodSerializer;
         private CppMethodSerializer MethodSerializer { get => _methodSerializer ??= new CppMethodSerializer(_config, map); }
         private readonly SerializationConfig _config;
+        private CppTypeContext _context;
 
         internal CppTypeDataSerializer(SerializationConfig config)
         {
@@ -43,6 +44,7 @@ namespace Il2CppModdingCodegen.Serialization
         internal void Resolve(CppTypeContext context, ITypeData type)
         {
             // Asking for ourselves as a definition will simply make things easier when resolving ourselves.
+            _context = context;
             var resolved = context.GetCppName(type.This, false, false, CppTypeContext.NeedAs.Definition, CppTypeContext.ForceAsType.Literal);
             if (resolved is null)
                 throw new InvalidOperationException($"Could not resolve provided type: {type.This}!");
@@ -213,11 +215,15 @@ namespace Il2CppModdingCodegen.Serialization
                 if (idx >= 0)
                     typeName = typeName.Substring(idx + 2);
             }
-            writer.WriteDefinition(type.Type.TypeName() + " " + typeName + s);
+            if (type.Type == TypeEnum.Enum)
+                writer.WriteDefinition(type.Type.TypeName() + " " + typeName + " : " + _context.ConvertPrimitive(type.InstanceFields.Single().Type, CppTypeContext.ForceAsType.None, CppTypeContext.NeedAs.BestMatch)  + s);
+            else
+                writer.WriteDefinition(type.Type.TypeName() + " " + typeName + s);
             // TODO: debug is_complete
             // WriteGenericTypeConstraints(writer, state.genParamConstraints, true);
 
-            writer.WriteLine("public:");
+            if (type.Type != TypeEnum.Enum)
+                writer.WriteLine("public:");
             //if (type.Info.Refness != Refness.ValueType)
             //{
             //    // Only write a constexpr constructor if we aren't a value type. Otherwise, it is handled by WriteSpecialCtors
@@ -248,7 +254,7 @@ namespace Il2CppModdingCodegen.Serialization
             {
                 return;
             }
-            if (instanceFields && type.Info.Refness != Refness.ValueType)
+            if (instanceFields && type.Info.Refness != Refness.ValueType && type.Type != TypeEnum.Enum)
             {
                 // TODO: Make static fields and instance fields conditionally public
                 //writer.WriteLine("#ifdef USE_CODEGEN_FIELDS");
@@ -261,7 +267,7 @@ namespace Il2CppModdingCodegen.Serialization
                 //writer.WriteLine("#endif");
                 //writer.WriteLine("#endif");
                 writer.WriteLine("public:");
-            } else if (instanceFields)
+            } else if (instanceFields && type.Type != TypeEnum.Enum)
             {
                 writer.WriteLine("public:");
             }

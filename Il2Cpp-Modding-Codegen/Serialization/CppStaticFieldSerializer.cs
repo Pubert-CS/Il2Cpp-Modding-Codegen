@@ -32,6 +32,7 @@ namespace Il2CppModdingCodegen.Serialization
         };
 
         private readonly Dictionary<IField, Constant> _constants = new Dictionary<IField, Constant>();
+        private CppTypeContext _context;
 
         internal CppStaticFieldSerializer(SerializationConfig config)
         {
@@ -53,6 +54,7 @@ namespace Il2CppModdingCodegen.Serialization
         {
             if (context is null) throw new ArgumentNullException(nameof(context));
             if (field is null) throw new ArgumentNullException(nameof(field));
+            _context = context;
             _declaringFullyQualified = context.QualifiedTypeName.TrimStart(':');
             _declaringLiteral = context.GetCppName(field.DeclaringType, false, false, forceAsType: CppTypeContext.ForceAsType.Literal);
             _thisTypeName = context.GetCppName(field.DeclaringType, false, needAs: CppTypeContext.NeedAs.Definition);
@@ -149,8 +151,17 @@ namespace Il2CppModdingCodegen.Serialization
             {
                 if (_constants.TryGetValue(field, out var constant))
                 {
-                    writer.WriteComment("static field const value: " + fieldCommentString);
-                    writer.WriteDeclaration($"static constexpr const {constant.type} {constant.name} = {constant.value}");
+                    if (_context.LocalType.Type == TypeEnum.Enum)
+                    {
+                        writer.Write($"{constant.name} = {constant.value}");
+                        if (_constants.Keys.ToList().IndexOf(field) < _constants.Count - 1) writer.Write(",");
+                        writer.WriteLine();
+                    }
+                    else
+                    {
+                        writer.WriteComment("static field const value: " + fieldCommentString);
+                        writer.WriteDeclaration($"static constexpr const {constant.type} {constant.name} = {constant.value}");
+                    }
                 }
                 // Create two method declarations:
                 // static FIELDTYPE _get_FIELDNAME();

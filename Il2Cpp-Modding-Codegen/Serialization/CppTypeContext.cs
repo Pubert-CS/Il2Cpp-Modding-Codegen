@@ -629,7 +629,41 @@ namespace Il2CppModdingCodegen.Serialization
         // We only need a declaration for the element type (if we aren't needed as a definition)
         private static NeedAs NeedAsForPrimitiveEtype(NeedAs needAs) => needAs == NeedAs.Definition ? needAs : NeedAs.Declaration;
 
-        private string? ConvertPrimitive(TypeRef def, ForceAsType forceAs, NeedAs needAs)
+        public static string? GetEnumBackref(TypeRef def)
+        {
+            string? s = null;
+            if (string.IsNullOrEmpty(def.Namespace) || def.Namespace == "System")
+            {
+            var name = def.Name.ToLower();
+                if (name == "char")
+                    s = "Il2CppChar";
+                else if (def.Name == "bool" || def.Name == "Boolean")
+                    s = "bool";
+                else if (name == "sbyte")
+                    s = "int8_t";
+                else if (name == "byte")
+                    s = "uint8_t";
+                else if (def.Name == "short" || def.Name == "Int16")
+                    s = "int16_t";
+                else if (def.Name == "ushort" || def.Name == "UInt16")
+                    s = "uint16_t";
+                else if (def.Name == "int" || def.Name == "Int32")
+                    s = "int";
+                else if (def.Name == "uint" || def.Name == "UInt32")
+                    s = "uint";
+                else if (def.Name == "long" || def.Name == "Int64")
+                    s = "int64_t";
+                else if (def.Name == "ulong" || def.Name == "UInt64")
+                    s = "uint64_t";
+                else if (def.Name == "float" || def.Name == "Single")
+                    s = "float";
+                else if (name == "double")
+                    s = "double";
+            }
+            return s;
+        }
+
+        public string? ConvertPrimitive(TypeRef def, ForceAsType forceAs, NeedAs needAs)
         {
             string? s = null;
             if (def.IsArray())

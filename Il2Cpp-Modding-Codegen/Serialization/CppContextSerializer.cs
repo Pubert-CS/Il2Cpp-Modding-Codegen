@@ -63,9 +63,12 @@ namespace Il2CppModdingCodegen.Serialization
         /// <param name="data"></param>
         /// <param name="context"></param>
         /// <param name="map"></param>
+
+        private CppTypeContext _context;
         private void Resolve(CppTypeContext context, Dictionary<ITypeData, CppTypeContext> map,
             bool asHeader, HashSet<CppTypeContext> stack)
         {
+            _context = context;
             if (!stack.Add(context))
                 return;
             var _contextMap = asHeader ? _headerContextMap : _sourceContextMap;
@@ -201,7 +204,10 @@ namespace Il2CppModdingCodegen.Serialization
                     writer.WriteLine(genericStr);
             }
             // Write forward declarations
-            writer.WriteDeclaration(typeData.Type.TypeName() + " " + resolved.CppName());
+            if (typeData.Type == TypeEnum.Enum)
+                writer.WriteDeclaration(typeData.Type.TypeName() + " " + resolved.CppName() + " : " + CppTypeContext.GetEnumBackref(typeData.InstanceFields.Single().Type) );
+            else
+                writer.WriteDeclaration(typeData.Type.TypeName() + " " + resolved.CppName());
         }
 
         private void WriteIncludes(CppStreamWriter writer, CppTypeContext context, HashSet<CppTypeContext> defs, bool asHeader)
@@ -365,7 +371,10 @@ namespace Il2CppModdingCodegen.Serialization
             }
             else
                 writer.WriteComment(comment);
-            writer.WriteDeclaration(typeStr + " " + nested.LocalType.This.CppName());
+            if (nested.LocalType.Type == TypeEnum.Enum)
+                writer.WriteDeclaration(typeStr + " " + nested.LocalType.This.CppName() + " : " + CppTypeContext.GetEnumBackref(nested.LocalType.InstanceFields.Single().Type));
+            else
+                writer.WriteDeclaration(typeStr + " " + nested.LocalType.This.CppName());
         }
 
         private void WriteNamespacedMethods(CppStreamWriter writer, CppTypeContext context, bool asHeader)
@@ -399,7 +408,7 @@ namespace Il2CppModdingCodegen.Serialization
             // DEFINE_IL2CPP_ARG_TYPE
             var (ns, il2cppName) = type.This.GetIl2CppName();
             // For Name and Namespace here, we DO want all the `, /, etc
-            if (!type.This.IsGeneric)
+            if (!type.This.IsGeneric && type.Type != TypeEnum.Enum)
             {
                 IncludeIl2CppTypeCheckIfNotAlready(writer);
                 string fullName = context.GetCppName(context.LocalType.This, true, true, CppTypeContext.NeedAs.Definition, CppTypeContext.ForceAsType.Literal)
@@ -451,7 +460,7 @@ namespace Il2CppModdingCodegen.Serialization
             {
                 if (!context.InPlace || context.DeclaringContext is null)
                 {
-                    if (context.LocalType.This.DeclaringType is null)
+                    if (context.LocalType.This.DeclaringType is null && context.LocalType.Type != TypeEnum.Enum)
                     {
                         // Write namespace
                         // Always write an FD of ourselves, UNLESS WE ARE A NESTED TYPE!
@@ -467,7 +476,6 @@ namespace Il2CppModdingCodegen.Serialization
                 }
             }
 
-            // Only write the initial type and nested declares/definitions if we are a header
             if (asHeader)
             {
                 if (!context.InPlace)
@@ -522,7 +530,7 @@ namespace Il2CppModdingCodegen.Serialization
             }
 
             // Write instance fields and special ctors, if this is a header
-            if (asHeader)
+            if (asHeader && context.LocalType.Type != TypeEnum.Enum)
             {
                 typeSerializer.WriteInstanceFields(writer, context.LocalType);
                 typeSerializer.WriteSpecialCtors(writer, context.LocalType, context.LocalType.This.DeclaringType != null);

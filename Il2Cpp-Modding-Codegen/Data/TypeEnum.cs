@@ -22,10 +22,9 @@ namespace Il2CppModdingCodegen.Data
 
                 case TypeEnum.Struct:
                     return "struct";
-
                 case TypeEnum.Enum:
                     // For now, serialize enums as structs
-                    return "struct";
+                    return "enum class";
 
                 default:
                     throw new InvalidOperationException($"Cannot get C++ type name of type: {type}!");

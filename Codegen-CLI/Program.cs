@@ -55,8 +55,7 @@ namespace Codegen_CLI
             Console.WriteLine("Type the name of an output style (or don't for Normal) then press enter to serialize:");
             var input = "ThrowUnless";
             //var input = Console.ReadLine();
-            // TODO: strip non-alphabetic characters out of input before parsing it
-            if (Enum.TryParse(input, true, out OutputStyle style))
+            if (Enum.TryParse(input.Trim(), true, out OutputStyle style))
                 Console.WriteLine($"Parsed style '{style}'");
 
             Console.WriteLine("Creating serializer...");

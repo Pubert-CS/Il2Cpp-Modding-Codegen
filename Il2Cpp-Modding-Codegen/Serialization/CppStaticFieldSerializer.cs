@@ -104,9 +104,9 @@ namespace Il2CppModdingCodegen.Serialization
                         else if (resolvedName.StartsWith("::Il2CppChar"))
                         {
                             char c = (char)dllField.This.Constant;
-                            var encodedStr = Encode(c.ToString());
+                            var code = ((int)c).ToString("X4");
                             type = resolvedName;
-                            value = $"u'{encodedStr}'";
+                            value = $"0x{code}";
                         }
                         else
                             throw new Exception($"Unhandled constant type {resolvedName}!");

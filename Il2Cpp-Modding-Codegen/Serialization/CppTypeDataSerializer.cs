@@ -221,6 +221,7 @@ namespace Il2CppModdingCodegen.Serialization
             // TODO: debug is_complete
             // WriteGenericTypeConstraints(writer, state.genParamConstraints, true);
 
+
             if (type.Type != TypeEnum.Enum)
                 writer.WriteLine("public:");
             //if (type.Info.Refness != Refness.ValueType)

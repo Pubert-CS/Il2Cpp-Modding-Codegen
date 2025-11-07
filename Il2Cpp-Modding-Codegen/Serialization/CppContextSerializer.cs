@@ -3,7 +3,9 @@ using Il2CppModdingCodegen.Data;
 using Il2CppModdingCodegen.Data.DllHandling;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net.Http.Headers;
 
 namespace Il2CppModdingCodegen.Serialization
 {
@@ -432,6 +434,52 @@ namespace Il2CppModdingCodegen.Serialization
             }
         }
 
+        static internal List<CppTypeContext> ResolveDependencyCtxs(IReadOnlyList<CppTypeContext> contexts)
+        {
+            var deps = contexts.ToDictionary(c => c, _ => new HashSet<CppTypeContext>());
+
+            foreach (var ctx in contexts)
+            {
+                foreach (var field in ctx.LocalType.Fields)
+                {
+                    var t = field.Type;
+                    if (t.IsArray() || t.IsPointer() || t.IsGenericParameter)
+                        continue;
+
+                    var resolved = t.Resolve(ctx.Types);
+                    if (resolved == null)
+                        continue;
+
+                    if (!CppDataSerializer.TypeToContext.TryGetValue(resolved, out var depCtx))
+                        depCtx = contexts.FirstOrDefault(c => c.LocalType.This.Equals(t));
+
+                    if (depCtx != null && depCtx != ctx && contexts.Contains(depCtx))
+                        deps[ctx].Add(depCtx);
+                }
+            }
+
+            var ordered = new List<CppTypeContext>();
+            var ready = new Queue<CppTypeContext>(deps.Where(x => x.Value.Count == 0).Select(x => x.Key));
+
+            while (ready.Count > 0)
+            {
+                var next = ready.Dequeue();
+                ordered.Add(next);
+
+                foreach (var kv in deps)
+                {
+                    if (kv.Value.Remove(next) && kv.Value.Count == 0 && !ordered.Contains(kv.Key))
+                        ready.Enqueue(kv.Key);
+                }
+            }
+
+            foreach (var ctx in contexts)
+                if (!ordered.Contains(ctx))
+                    ordered.Add(ctx);
+
+            return ordered;
+        }
+
         internal void Serialize(CppStreamWriter writer, CppTypeContext context, bool asHeader)
         {
             var contextMap = asHeader ? _headerContextMap : _sourceContextMap;
@@ -515,16 +563,11 @@ namespace Il2CppModdingCodegen.Serialization
                     }
                 }
 
-                // Now, we must also write all of the nested contexts of this particular context object that have InPlace = true
-                // We want to recurse on this, writing the declarations for our types first, followed by our nested types
-                // TODO: The nested types should be written in a dependency-resolved way (ex: nested type A uses B, B should be written before A)
-                // Alternatively, we don't even NEED to NOT nest in place, we could always just nest in place anyways.
-                foreach (var nested in context.NestedContexts)
+                foreach (var nested in ResolveDependencyCtxs(context.NestedContexts))
                     // Regardless of if the nested context is InPlace or not, we can declare it within ourselves
                     AddNestedDeclare(writer, nested);
 
-
-                foreach (var inPlace in context.NestedContexts.Where(nc => nc.InPlace))
+                foreach (var inPlace in ResolveDependencyCtxs(context.NestedContexts.Where(nc => nc.InPlace).ToList()))
                     // Indent, create nested type definition
                     Serialize(writer, inPlace, true);
             }
@@ -600,10 +643,10 @@ namespace Il2CppModdingCodegen.Serialization
                         // Don't actually need size checks, since offset checks should cover everything feasible.
                         // Extra bytes don't really matter, assuming it doesn't impact any OTHER structure.
                         // if (context.GetLocalSize() != -1)
-                            // If we know the explicit size, we check it because we will be packed.
-                            // writer.WriteDeclaration($"static check_size<sizeof({typeName}), {f.Offset} + sizeof({context.GetCppName(f.Type, true)})> __{context.LocalType.This.CppNamespace().Replace("::", "_")}_{typeName?.Replace("::", "_")}SizeCheck");
+                        // If we know the explicit size, we check it because we will be packed.
+                        // writer.WriteDeclaration($"static check_size<sizeof({typeName}), {f.Offset} + sizeof({context.GetCppName(f.Type, true)})> __{context.LocalType.This.CppNamespace().Replace("::", "_")}_{typeName?.Replace("::", "_")}SizeCheck");
                         // else
-                            // writer.WriteComment("WARNING Not writing size check since size may be invalid!");
+                        // writer.WriteComment("WARNING Not writing size check since size may be invalid!");
                         // For multiple fields, we need to ensure we are align 8
                         // writer.WriteDeclaration($"static check_size<sizeof({typeName}), ({f.Offset} + sizeof({context.GetCppName(f.Type, true)})) % 8 != 0 ? (8 - ({f.Offset} + sizeof({context.GetCppName(f.Type, true)})) % 8) + {f.Offset} + sizeof({context.GetCppName(f.Type, true)}) : {f.Offset} + sizeof({context.GetCppName(f.Type, true)})> __{context.LocalType.This.CppNamespace().Replace("::", "_")}_{typeName?.Replace("::", "_")}SizeCheck");
                     }
@@ -616,7 +659,7 @@ namespace Il2CppModdingCodegen.Serialization
                     }
                     var localTypeSize = context.GetLocalSize();
                     //if (localTypeSize > 0)
-                        //writer.WriteDeclaration($"static_assert(sizeof({typeName}) == 0x{localTypeSize:X})");
+                    //writer.WriteDeclaration($"static_assert(sizeof({typeName}) == 0x{localTypeSize:X})");
                 }
                 else if (context.LocalType.This.IsGeneric)
                 {

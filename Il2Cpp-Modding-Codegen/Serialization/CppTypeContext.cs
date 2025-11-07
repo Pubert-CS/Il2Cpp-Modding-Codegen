@@ -682,7 +682,7 @@ namespace Il2CppModdingCodegen.Serialization
                 if (name == "void")
                     s = "void";
                 else if (name == "object")
-                    s = Constants.ObjectCppName + "*";
+                    s = Constants.ObjectCppName;
                 else if (name == "string")
                 {
                     s = "::" + Constants.StringCppName;

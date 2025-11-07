@@ -206,7 +206,6 @@ namespace Il2CppModdingCodegen.Serialization
                     writer.WriteLine(genericStr);
             }
 
-            // TODO: print enums as actual C++ smart enums? backing type is type of _value and A = #, should work for the lines inside the enum
             // TODO: We need to specify generic declaring types with their generic parameters
             var typeName = state.type;
             if (nestedInPlace)

@@ -547,6 +547,7 @@ namespace Il2CppModdingCodegen.Serialization
                 name += data.CppName();
                 if (generics && data.Generics.Count > 0)
                 {
+                    if (name == "System::Collections::Generic::List_1") name = Constants.ListCppName;
                     name += "<";
                     bool first = true;
                     for (int i = 0; i < data.Generics.Count; i++)
@@ -671,7 +672,7 @@ namespace Il2CppModdingCodegen.Serialization
                 // We should ensure we aren't attemping to force it to something it shouldn't be, so it should still be ForceAsType.None
                 // However, for arrays, we DO need to ensure we get the definition of the element type, assuming the element type is not a value type itself.
                 NeedArrayInclude = true;
-                s = $"BNM::Structures::Mono::Array<{GetCppName(def.ElementType, true, true, NeedAs.BestMatch)}>*";
+                s = $"{Constants.ArrayCppName}<{GetCppName(def.ElementType, true, true, NeedAs.BestMatch)}>*";
             }
             else if (def.IsPointer())
                 return GetCppName(def.ElementType, true, true, NeedAsForPrimitiveEtype(needAs)) + "*";
@@ -681,7 +682,7 @@ namespace Il2CppModdingCodegen.Serialization
                 if (name == "void")
                     s = "void";
                 else if (name == "object")
-                    s = Constants.ObjectCppName;
+                    s = Constants.ObjectCppName + "*";
                 else if (name == "string")
                 {
                     s = "::" + Constants.StringCppName;

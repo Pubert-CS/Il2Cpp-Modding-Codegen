@@ -654,7 +654,7 @@ namespace Il2CppModdingCodegen.Serialization
                 {
                     var typeName = pair.Value;
                     var fieldName = fieldSer.SafeFieldNames[pair.Key];
-                    var defaultVal = typeName!.StartsWith("BNM::Structures::Mono::Array<") ? $"nullptr" : "{}";
+                    var defaultVal = typeName!.StartsWith($"{Constants.ArrayCppName}<") ? $"nullptr" : "{}";
                     return typeName + " " + fieldName + $"_ = {defaultVal}";
                 }));
                 signature += ") noexcept";

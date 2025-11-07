@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Il2CppModdingCodegen.Serialization;
 
 namespace Il2CppModdingCodegen.Data
 {
@@ -17,7 +18,7 @@ namespace Il2CppModdingCodegen.Data
         internal bool IsClassType => _typeName.Any(char.IsUpper);
 
         internal bool HasTemplate => !string.IsNullOrEmpty(_templatedName);
-        internal string ElementType => Regex.Match(_typeName, @"BNM::Structures::Mono::Array<(.*)>[^>]*").Groups[1].ToString();
+        internal string ElementType => Regex.Match(_typeName, Constants.ArrayCppName + @"<(.*)>[^>]*").Groups[1].ToString();
 
         // other properties
         internal bool Skip { get; set; } = false;

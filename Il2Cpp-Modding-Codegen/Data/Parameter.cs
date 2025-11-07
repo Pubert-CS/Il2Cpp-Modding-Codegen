@@ -1,5 +1,6 @@
 ﻿using Il2CppModdingCodegen.Data.DllHandling;
 using Il2CppModdingCodegen.Data.DumpHandling;
+using Il2CppModdingCodegen.Serialization;
 using Mono.Cecil;
 using System;
 using System.Collections.Generic;
@@ -101,7 +102,7 @@ namespace Il2CppModdingCodegen.Data
                         if (container.ExpandParams)
                         {
                             if (!container.HasTemplate)
-                                nameStr = $"BNM::Structures::Mono::Array<{container.ElementType}>({nameStr})";
+                                nameStr = $"{Constants.ArrayCppName}<{container.ElementType}>({nameStr})";
                             else
                             {
                                 if (!container.TypeName(true).Contains("..."))

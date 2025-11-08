@@ -19,7 +19,7 @@ namespace Codegen_CLI
         private static void Main(string[] args)
         {
             Console.WriteLine(DateTime.UtcNow.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fff'Z'"));
-            Console.WriteLine("Drag and drop your dump.cs file (or a partial of it of the correct format) then press enter...");
+            Console.WriteLine("Drag and drop your DummyDll folder (or a partial of it of the correct format) then press enter...");
             string path = @"/home/pubert/Downloads/Il2CppDumper-GT-HAL21/DummyDll";
             if (!Directory.Exists(path))
                 path = Console.ReadLine().Replace("\"", string.Empty);

@@ -918,7 +918,7 @@ namespace Il2CppModdingCodegen.Serialization
                 {
                     if (pair.Item2 != ParameterModifier.None && pair.Item2 != ParameterModifier.Params)
                     {
-                        return st; // no byref stuff
+                        return "&" + st; // no byref stuff
                         return "byref(" + st + ")";
                     }
                     return st;

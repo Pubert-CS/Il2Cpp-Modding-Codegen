@@ -968,7 +968,7 @@ namespace Il2CppModdingCodegen.Serialization
 
                     if (isExtern)
                     {
-                        string externClass = (string.IsNullOrEmpty(method.DeclaringType.Namespace) ? "" : $"{method.DeclaringType.Namespace}::") 
+                        string externClass = (string.IsNullOrEmpty(method.DeclaringType.Namespace) ? "" : $"{method.DeclaringType.Namespace}.") 
                             + method.DeclaringType.Name;
 
                         string paramTypes = method.Parameters.FormatParameters(_config.IllegalNames, _parameterMaps[method], ParameterFormatFlags.Types, asHeader).Replace("&", "*");
@@ -978,7 +978,7 @@ namespace Il2CppModdingCodegen.Serialization
                             externExtraParamP += ", ";
 
                         writer.WriteDeclaration($"{(cache ? "static " : "")}auto {invokeMethodName} = " +
-                            _config.MacroWrap("", $"({returnType}(*)({externExtraParamP}{paramTypes}))::BNM::GetExternMethod(\"{externClass}.{method.Name}\")", true));
+                            _config.MacroWrap("", $"({returnType}(*)({externExtraParamP}{paramTypes}))::BNM::GetExternMethod(\"{externClass}::{method.Name}\")", true));
                     }
                     else
                     {

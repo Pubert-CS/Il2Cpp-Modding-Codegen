@@ -1,5 +1,6 @@
 using Il2CppModdingCodegen.Config;
 using Il2CppModdingCodegen.Data;
+using Il2CppModdingCodegen.Data.DllHandling;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -952,8 +953,39 @@ namespace Il2CppModdingCodegen.Serialization
                     bool cache = !method.IsVirtual || method.Specifiers.IsStatic() && !method.Parameters.Any(p => method.DeclaringType.Generics.Any(p2 => p2.Equals(p)));
                     //if (!method.IsVirtual)
                     //{
-                    writer.WriteDeclaration($"{(cache ? "static " : "")}::BNM::Method<{returnType}> {invokeMethodName} = " +
-                        _config.MacroWrap("", $"{internalClass}.GetMethod(\"{method.Il2CppName}\", {( string.IsNullOrEmpty(extractionString) ? "0" : $"{{{extractionString}}}" )})", true));
+                    bool isExtern = false;
+                    if (method is DllMethod dllmethod)
+                    {
+                        if (!dllmethod.Generic && dllmethod.IsExtern)
+                        {
+                            isExtern = true;
+                        } 
+                    }
+
+                    string externExtraParam = isExtern && !method.Specifiers.IsStatic() ? "reinterpret_cast<Il2CppObject*>(this)" : "";
+                    if (!string.IsNullOrEmpty(externExtraParam) && method.Parameters.Count > 0)
+                        externExtraParam += ", ";
+
+                    if (isExtern)
+                    {
+                        string externClass = (string.IsNullOrEmpty(method.DeclaringType.Namespace) ? "" : $"{method.DeclaringType.Namespace}::") 
+                            + method.DeclaringType.Name;
+
+                        string paramTypes = method.Parameters.FormatParameters(_config.IllegalNames, _parameterMaps[method], ParameterFormatFlags.Types, asHeader).Replace("&", "*");
+
+                        string externExtraParamP = isExtern && !method.Specifiers.IsStatic() ? "Il2CppObject* self" : "";
+                        if (!string.IsNullOrEmpty(externExtraParamP) && method.Parameters.Count > 0)
+                            externExtraParamP += ", ";
+
+                        writer.WriteDeclaration($"{(cache ? "static " : "")}auto {invokeMethodName} = " +
+                            _config.MacroWrap("", $"({returnType}(*)({externExtraParamP}{paramTypes}))::BNM::GetExternMethod(\"{externClass}.{method.Name}\")", true));
+                    }
+                    else
+                    {
+                        writer.WriteDeclaration($"{(cache ? "static " : "")}::BNM::Method<{returnType}> {invokeMethodName} = " +
+                            _config.MacroWrap("", $"{internalClass}.GetMethod(\"{method.Il2CppName}\", {( string.IsNullOrEmpty(extractionString) ? "0" : $"{{{extractionString}}}" )})", true));
+                    }
+                    
                     /*}
                     else
                     {
@@ -975,12 +1007,13 @@ namespace Il2CppModdingCodegen.Serialization
                    //(___internal__method.GetGeneric({::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<TAsyncCompletedEventArgs>::get(), ::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<TCompletionDelegate>::get(), ::il2cpp_utils::il2cpp_type_check::il2cpp_no_arg_class<T>::get()}));
                    //___generic__method.SetInstance(reinterpret_cast<Il2CppObject*>(this));
                     //___generic__method.Call(tcs, e, getResult, handler, unregisterHandler);
-                    if (!method.Specifiers.IsStatic())
+                    if (!isExtern && !method.Specifiers.IsStatic())
                     {
                         writer.WriteDeclaration($"{invokeMethodName}.SetInstance(reinterpret_cast<Il2CppObject*>(this))");
                     }
                     //string firstParam = method.Specifiers.IsStatic() ? "static_cast<Il2CppObject*>(nullptr)" : "this";
-                    call = $"{invokeMethodName}.Call({paramString})";
+
+                    call = $"{invokeMethodName}({externExtraParam}{paramString})";
                     //call += $"{invokeMethodName}" + (paramString.Length > 0 ? (", " + paramString) : "") + ")";
                 }
                 else

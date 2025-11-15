@@ -31,6 +31,23 @@ namespace Il2CppModdingCodegen.Data.DllHandling
         public bool IsSpecialName { get; }
         public bool IsVirtual { get; }
 
+        public bool IsExtern
+        {
+            get
+            {
+                if (This.IsAbstract) return false;
+                if (This.DeclaringType.IsInterface) return false;
+
+                if (RVA == -1) return true;
+
+                if ((This.ImplAttributes & MethodImplAttributes.InternalCall) != 0)
+                    return true;
+
+                return false;
+            }
+        }
+
+
         // Use the specific hash comparer to ensure validity!
         private static readonly DllMethodDefinitionHash comparer = new DllMethodDefinitionHash();
 
